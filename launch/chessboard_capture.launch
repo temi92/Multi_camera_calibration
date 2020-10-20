@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<launch>
+
+  <!-- Parameters -->   
+  
+  <arg name="rows" default="14"/>
+  <arg name="columns" default="9"/>
+  <arg name="square-size" default="0.055"/> 
+  <arg name="calibration_images" default="$(find multi_camera_calibration)/calibration_images"/>
+  <arg name="delay" default="7"/> <!-- timer delay between image capture-->
+  <arg name="no_images" default="40"/>
+  <arg name="camera1" default="/camera1_pod/color/image_raw"/>
+  <arg name="camera2" default="/camera2_pod/color/image_raw"/>
+
+  <node pkg="multi_camera_calibration" type="imageCapture.py" name="chessboard_capture" output="screen">
+      
+    <param name="rows" value="$(arg rows)" type="int"/>
+    <param name="columns" value="$(arg columns)" type="int"/>
+    <param name="square-size" value="$(arg square-size)" type="double"/>
+    <param name="calibration_images" value="$(arg calibration_images)" type="str"/>
+    <param name="delay" value="$(arg delay)" type="int"/>
+    <param name="no_images" value="$(arg no_images)" type="int"/>
+    <param name="camera1" value="$(arg camera1)" type="str" />
+    <param name="camera2" value="$(arg camera2)" type="str" />
+
+
+  </node>
+
+</launch>
