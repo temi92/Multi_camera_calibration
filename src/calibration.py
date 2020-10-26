@@ -132,6 +132,10 @@ class StereoCalibration(object):
                             self.r.distortion, self.image_size, 
                             None, None, 
                             criteria=criteria, flags=flags)
+
+        assert rms < 1.0, "[ERROR] Calibration STEREO RMS error < 1.0 (%i). Re-try image capture." % (rms)
+        print("[OK] STEREO Calibration successful RMS error: %.4f" %(rms))
+
         print ("[INFO] rms stero %.4f" %rms)
 
         print("T =", np.ravel(trans).tolist())
