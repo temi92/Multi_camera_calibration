@@ -24,7 +24,7 @@ class MonoCalibration(object):
         corner_coordinates *= self.square_size
         return corner_coordinates
 
-    def _get_corners(self, img):
+    def _get_corners(self, img, filename):
             """
             Get corners for a particular chessboard for an image
             """
@@ -41,7 +41,7 @@ class MonoCalibration(object):
                                 (cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS,
                                 30, 0.01))
             else:
-                raise CalibrationException("no checkerboard found")
+                raise CalibrationException("no checkerboard found in %s" %filename)
                 
                                     
             return corners
@@ -50,7 +50,7 @@ class MonoCalibration(object):
         for file_name in tqdm(image_files, desc="detecting corner points in %s images." %self.camera_position):
             self.obj_points.append(self._object_points())
             im = cv2.imread(file_name, 0)
-            corners = self._get_corners(im).reshape(-1, 2)
+            corners = self._get_corners(im, file_name).reshape(-1, 2)
             self.img_points.append(corners)
     
     def calibrate(self):
