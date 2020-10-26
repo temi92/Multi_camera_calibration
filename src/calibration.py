@@ -15,7 +15,7 @@ class MonoCalibration(object):
         self.obj_points = []
         self.img_points = []
         self.camera_position = camera_position
-  
+      
 
 
     def _object_points(self):
@@ -62,7 +62,7 @@ class MonoCalibration(object):
         intrinsics_in = np.eye(3, dtype=np.float64)
 
 
-        rms_error, self.intrinsics, dist_coeffs, _, _ = cv2.calibrateCamera(
+        rms_error, self.intrinsics, dist_coeffs, self.rvecs,self.tvecs = cv2.calibrateCamera(
                        self.obj_points, self.img_points,
                        self.image_size,
                        intrinsics_in,
@@ -73,31 +73,21 @@ class MonoCalibration(object):
         print("[OK] Calibration successful %s RMS error=" %(self.camera_position) + str(rms_error))
 
         self.distortion = dist_coeffs.flat[:8].reshape(-1, 1)
-        self.R = np.eye(3, dtype=np.float64)
-        self.P = np.zeros((3, 4), dtype=np.float64)
-
-        ncm, _ = cv2.getOptimalNewCameraMatrix(self.intrinsics, self.distortion, self.image_size, 0)
-        self.intrinsics = ncm
-       
-        """
-        for j in range(3):
-            for i in range(3):
-                self.P[j,i] = ncm[j, i]
-        """
-        
-        self.mapx, self.mapy = cv2.initUndistortRectifyMap(self.intrinsics, self.distortion, self.R, ncm, self.image_size, cv2.CV_32FC1)
-        
-        
+        self.reprojectionError()
+                
     def report(self):
         print("K =", np.ravel(self.intrinsics).tolist())
         print ("dist_coeff = ", np.ravel(self.distortion))
 
-    def undistort_image(self, src):
-        return cv2.remap(src, self.mapx, self.mapy, cv2.INTER_LINEAR)  
-        
+       
 
-    
-
+    def reprojectionError(self):
+        mean_error = 0
+        for i in xrange(len(self.obj_points)):
+            imgpoints2, _ = cv2.projectPoints(self.obj_points[i], self.rvecs[i], self.tvecs[i], self.intrinsics, self.distortion)
+            error = cv2.norm(self.img_points[i], imgpoints2.reshape(-1,2), cv2.NORM_L2) / len(imgpoints2)
+            mean_error +=error
+        print("Re-projection Error: {}".format(mean_error / len(self.obj_points)))
 
 class StereoCalibration(object):
     
@@ -121,32 +111,32 @@ class StereoCalibration(object):
 
     def calibrate(self, filename):
         self.l.collect_corners(self.left_images)
-        self.r.collect_corners(self.right_images)
         self.l.calibrate()
+        self.r.collect_corners(self.right_images)
         self.r.calibrate()
 
         print("[INFO] calibrating stereo pair...")
         #flags = (cv2.CALIB_FIX_ASPECT_RATIO + cv2.CALIB_ZERO_TANGENT_DIST +
                  #cv2.CALIB_SAME_FOCAL_LENGTH)
-        flags = (cv2.CALIB_USE_INTRINSIC_GUESS)
-
+        #flags = (cv2.CALIB_USE_INTRINSIC_GUESS)
+        flags = (cv2.CALIB_FIX_INTRINSIC)
         
         criteria = (cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS,
                     100, 1e-5)
 
-        
+
+       
         rms, intrinsics_left, dist_left, intrinsics_right, dist_right, rot, trans, _, _ = cv2.stereoCalibrate(self.l.obj_points, self.l.img_points, 
                             self.r.img_points, self.l.intrinsics,
                             self.l.distortion, self.r.intrinsics, 
                             self.r.distortion, self.image_size, 
                             None, None, 
-                            criteria=criteria, flags = flags)
+                            criteria=criteria, flags=flags)
         print ("[INFO] rms stero %.4f" %rms)
 
         print("T =", np.ravel(trans).tolist())
         print("R =", np.ravel(rot).tolist())
-
-
+        
         #save calibration results.
         dist_pickle = {}
         dist_pickle["left_intrinsic"] = intrinsics_left
